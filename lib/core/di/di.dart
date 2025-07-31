@@ -9,7 +9,7 @@ GetIt getIt = GetIt.instance;
   asExtension: false,
   throwOnMissingDependencies: true,
 )
-Future<void> configureDependencies({
+void configureDependencies({
   String? env,
   EnvironmentFilter? environmentFilter,
 }) async {
