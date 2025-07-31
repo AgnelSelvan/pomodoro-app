@@ -3,7 +3,7 @@
     {
       "id": "deep_work",
       "name": "Deep Work",
-      "duration": 1500,
+      "duration": 60,
       "color": "#FF6B6B",
       "icon": "work",
       "description": "Focus on complex tasks"
@@ -11,7 +11,7 @@
     {
       "id": "short_break",
       "name": "Short Break",
-      "duration": 300,
+      "duration": 60,
       "color": "#4ECDC4",
       "icon": "coffee",
       "description": "Quick refresh"
@@ -19,7 +19,7 @@
     {
       "id": "long_break",
       "name": "Long Break",
-      "duration": 900,
+      "duration": 60,
       "color": "#45B7D1",
       "icon": "restaurant",
       "description": "Extended rest"

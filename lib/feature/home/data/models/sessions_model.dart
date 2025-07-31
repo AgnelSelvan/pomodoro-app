@@ -9,7 +9,7 @@ part 'sessions_model.g.dart';
 @freezed
 abstract class SessionsModel with _$SessionsModel {
   const factory SessionsModel({
-    required List<SessionModel> session,
+    required List<SessionModel> sessions,
     required SettingModel settings,
   }) = _SessionsModel;
 
@@ -19,7 +19,7 @@ abstract class SessionsModel with _$SessionsModel {
 
 extension SessionsModelExtension on SessionsModel {
   SessionsEntity toEntity() => SessionsEntity(
-    session: session.map((e) => e.toEntity()).toList(),
+    sessions: sessions.map((e) => e.toEntity()).toList(),
     settings: settings.toEntity(),
   );
 }

@@ -7,10 +7,10 @@ part 'setting_model.g.dart';
 @freezed
 abstract class SettingModel with _$SettingModel {
   const factory SettingModel({
-    required int inactivityThreshold,
-    required bool autoSkipBreaks,
-    required bool soundEnabled,
-    required bool vibrationEnabled,
+    @JsonKey(name: 'inactivity_threshold') required int inactivityThreshold,
+    @JsonKey(name: 'auto_skip_breaks') required bool autoSkipBreaks,
+    @JsonKey(name: 'sound_enabled') required bool soundEnabled,
+    @JsonKey(name: 'vibration_enabled') required bool vibrationEnabled,
   }) = _SettingModel;
 
   factory SettingModel.fromJson(Map<String, dynamic> json) =>

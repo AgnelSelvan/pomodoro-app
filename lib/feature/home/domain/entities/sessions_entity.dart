@@ -7,7 +7,7 @@ part 'sessions_entity.freezed.dart';
 @freezed
 abstract class SessionsEntity with _$SessionsEntity {
   const factory SessionsEntity({
-    required List<SessionEntity> session,
+    required List<SessionEntity> sessions,
     required SettingEntity settings,
   }) = _SessionsEntity;
 }

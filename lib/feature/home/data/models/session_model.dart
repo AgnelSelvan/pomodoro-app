@@ -23,7 +23,7 @@ extension SessionModelExtension on SessionModel {
   SessionEntity toEntity() => SessionEntity(
     id: id,
     name: name,
-    duration: duration,
+    duration: duration ~/ 60,
     color: color,
     icon: icon,
     description: description,
