@@ -189,18 +189,10 @@ class _SessionTimerWidgetState extends State<SessionTimerWidget> {
                         foregroundColor: Colors.white,
                       ),
                     ),
-                  if (state.isRunning || state.isPaused)
-                    ElevatedButton.icon(
-                      onPressed: () => context.read<TimerCubit>().stopTimer(),
-                      icon: const Icon(Icons.stop),
-                      label: const Text('Stop'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
                   ElevatedButton.icon(
-                    onPressed: () => context.read<TimerCubit>().resetTimer(),
+                    onPressed: () {
+                      context.read<TimerCubit>().resetTimer();
+                    },
                     icon: const Icon(Icons.refresh),
                     label: const Text('Reset'),
                     style: ElevatedButton.styleFrom(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:timer_app/core/di/di.dart';
+import 'package:timer_app/core/utils/inactivity_detector.dart';
 import 'package:timer_app/feature/home/domain/entities/session_entity.dart';
 import 'package:timer_app/feature/home/domain/entities/sessions_entity.dart';
 import 'package:timer_app/feature/home/presentation/manager/home_cubit.dart';
@@ -16,6 +17,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   UniqueKey key = UniqueKey();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,11 +93,16 @@ class _HomePageState extends State<HomePage> {
         create: (context) => getIt<TimerCubit>(),
         child: SessionTimerWidget(
           session: currentSession,
-          onTimerComplete: (ctx) {
+          onTimerComplete: (ctx) async {
             final nextIndex =
                 (sessions.sessions.indexOf(currentSession) + 1) %
                 sessions.sessions.length;
-            final nextSession = sessions.sessions[nextIndex];
+            SessionEntity nextSession = sessions.sessions[nextIndex];
+
+            if ((await getIt<InactivityDetector>().getInactivityDuration()) >
+                80) {
+              nextSession = sessions.sessions[0];
+            }
 
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
