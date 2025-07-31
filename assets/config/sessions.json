@@ -1,0 +1,34 @@
+{
+  "sessions": [
+    {
+      "id": "deep_work",
+      "name": "Deep Work",
+      "duration": 1500,
+      "color": "#FF6B6B",
+      "icon": "work",
+      "description": "Focus on complex tasks"
+    },
+    {
+      "id": "short_break",
+      "name": "Short Break",
+      "duration": 300,
+      "color": "#4ECDC4",
+      "icon": "coffee",
+      "description": "Quick refresh"
+    },
+    {
+      "id": "long_break",
+      "name": "Long Break",
+      "duration": 900,
+      "color": "#45B7D1",
+      "icon": "restaurant",
+      "description": "Extended rest"
+    }
+  ],
+  "settings": {
+    "inactivity_threshold": 300,
+    "auto_skip_breaks": true,
+    "sound_enabled": true,
+    "vibration_enabled": true
+  }
+}
