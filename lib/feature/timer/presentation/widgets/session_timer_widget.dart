@@ -1,15 +1,12 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:timer_app/core/di/di.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:timer_app/feature/home/domain/entities/session_entity.dart';
-import 'package:timer_app/feature/timer/domain/use_cases/clear_time_state_use_case.dart';
-import 'package:timer_app/feature/timer/domain/use_cases/load_timer_state_use_case.dart';
-import 'package:timer_app/feature/timer/domain/use_cases/save_timer_state_use_case.dart';
+import 'package:timer_app/feature/timer/presentation/manager/timer_cubit.dart';
+import 'package:timer_app/feature/timer/presentation/manager/timer_state.dart';
 
 class SessionTimerWidget extends StatefulWidget {
   final SessionEntity session;
-  final VoidCallback? onTimerComplete;
+  final Function(BuildContext)? onTimerComplete;
   final bool isPlay;
 
   const SessionTimerWidget({
@@ -24,191 +21,78 @@ class SessionTimerWidget extends StatefulWidget {
 }
 
 class _SessionTimerWidgetState extends State<SessionTimerWidget> {
-  Timer? _timer;
-  int _remainingSeconds = 0;
-  bool _isRunning = false;
-  bool _isPaused = false;
-
   @override
   void initState() {
     super.initState();
-    _loadTimerState();
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _loadTimerState() async {
-    final savedState = await getIt<LoadTimerStateUseCase>().call().then(
-      (value) => value.fold((l) => null, (r) => r),
+    context.read<TimerCubit>().initializeTimer(
+      widget.session,
+      autoStart: widget.isPlay,
     );
-
-    if (savedState != null && savedState.sessionId == widget.session.id) {
-      if (savedState.isExpired) {
-        await getIt<ClearTimeStateUseCase>().call().then(
-          (value) => value.fold((l) => null, (r) => r),
-        );
-        setState(() {
-          _remainingSeconds = widget.session.duration * 60;
-          _isRunning = false;
-          _isPaused = false;
-        });
-        widget.onTimerComplete?.call();
-      } else {
-        setState(() {
-          _remainingSeconds = savedState.remainingSeconds;
-          _isRunning = savedState.isRunning;
-          _isPaused = savedState.isPaused;
-        });
-
-        if (_isRunning && !_isPaused) {
-          _isRunning = false;
-          setState(() {});
-          _startTimer();
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Timer restored: ${_formatTime(_remainingSeconds)} remaining',
-            ),
-            backgroundColor: Colors.blue,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    } else {
-      setState(() {
-        _remainingSeconds = widget.session.duration * 60;
-      });
-
-      if (widget.isPlay) {
-        _startTimer();
-      }
-    }
-  }
-
-  void _startTimer() {
-    if (_isRunning) return;
-
-    setState(() {
-      _isRunning = true;
-      _isPaused = false;
-    });
-
-    _saveTimerState();
-
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        if (_remainingSeconds > 0) {
-          _remainingSeconds--;
-          _saveTimerState();
-        } else {
-          _stopTimer();
-          widget.onTimerComplete?.call();
-        }
-      });
-
-      if (_remainingSeconds <= 0) {
-        getIt<ClearTimeStateUseCase>().call().then(
-          (value) => value.fold((l) => null, (r) => r),
-        );
-      }
-    });
-  }
-
-  Future<void> _saveTimerState() async {
-    await getIt<SaveTimerStateUseCase>().call(
-      session: widget.session,
-      remainingSeconds: _remainingSeconds,
-      isRunning: _isRunning,
-      isPaused: _isPaused,
-    );
-  }
-
-  void _pauseTimer() {
-    if (!_isRunning) return;
-
-    setState(() {
-      _isPaused = true;
-      _isRunning = false;
-    });
-    _timer?.cancel();
-    _saveTimerState();
-  }
-
-  void _resumeTimer() {
-    if (!_isPaused) return;
-
-    setState(() {
-      _isPaused = false;
-    });
-    _startTimer();
-    _saveTimerState();
-  }
-
-  void _stopTimer() {
-    _timer?.cancel();
-    setState(() {
-      _isRunning = false;
-      _isPaused = false;
-      _remainingSeconds = widget.session.duration * 60;
-    });
-    _saveTimerState();
-  }
-
-  void _resetTimer() {
-    _stopTimer();
-    setState(() {
-      _remainingSeconds = widget.session.duration * 60;
-    });
-    _saveTimerState();
-  }
-
-  String _formatTime(int seconds) {
-    int minutes = seconds ~/ 60;
-    int remainingSeconds = seconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
-  }
-
-  Color _getSessionColor() {
-    try {
-      String hexColor = widget.session.color;
-      if (hexColor.startsWith('#')) {
-        hexColor = hexColor.substring(1);
-      }
-      return Color(int.parse('FF$hexColor', radix: 16));
-    } catch (e) {
-      return Colors.blue;
-    }
-  }
-
-  IconData _getIconData(String iconName) {
-    switch (iconName.toLowerCase()) {
-      case 'work':
-        return Icons.work;
-      case 'coffee':
-        return Icons.coffee;
-      case 'restaurant':
-        return Icons.restaurant;
-      case 'timer':
-        return Icons.timer;
-      case 'play':
-        return Icons.play_arrow;
-      case 'pause':
-        return Icons.pause;
-      case 'stop':
-        return Icons.stop;
-      default:
-        return Icons.timer;
-    }
   }
 
   @override
   Widget build(BuildContext context) {
+    return BlocConsumer<TimerCubit, TimerState>(
+      listener: (context, state) {
+        if (state is TimerStateLoaded) {
+          if (state.isRestored) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Timer restored: ${context.read<TimerCubit>().formatTime(state.remainingSeconds)} remaining',
+                ),
+                backgroundColor: Colors.blue,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+
+          if (state.isExpired) {
+            widget.onTimerComplete?.call(context);
+          }
+        }
+      },
+      builder: (context, state) {
+        if (state is TimerStateInitial) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (state is TimerStateLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (state is TimerStateError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 64, color: Colors.red[400]),
+                const SizedBox(height: 16),
+                Text(
+                  'Error loading timer',
+                  style: TextStyle(fontSize: 18, color: Colors.red[400]),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  state.message,
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }
+
+        if (state is TimerStateLoaded) {
+          return _buildTimerUI(state);
+        }
+
+        return const Center(child: CircularProgressIndicator());
+      },
+    );
+  }
+
+  Widget _buildTimerUI(TimerStateLoaded state) {
     final sessionColor = _getSessionColor();
 
     return Card(
@@ -261,7 +145,7 @@ class _SessionTimerWidgetState extends State<SessionTimerWidget> {
             ),
             const SizedBox(height: 32),
             Text(
-              _formatTime(_remainingSeconds),
+              context.read<TimerCubit>().formatTime(state.remainingSeconds),
               style: TextStyle(
                 fontSize: 48,
                 fontWeight: FontWeight.bold,
@@ -275,9 +159,9 @@ class _SessionTimerWidgetState extends State<SessionTimerWidget> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 spacing: 10,
                 children: [
-                  if (!_isRunning && !_isPaused)
+                  if (!state.isRunning && !state.isPaused)
                     ElevatedButton.icon(
-                      onPressed: _startTimer,
+                      onPressed: () => context.read<TimerCubit>().startTimer(),
                       icon: const Icon(Icons.play_arrow),
                       label: const Text('Start'),
                       style: ElevatedButton.styleFrom(
@@ -285,9 +169,9 @@ class _SessionTimerWidgetState extends State<SessionTimerWidget> {
                         foregroundColor: Colors.white,
                       ),
                     ),
-                  if (_isRunning)
+                  if (state.isRunning)
                     ElevatedButton.icon(
-                      onPressed: _pauseTimer,
+                      onPressed: () => context.read<TimerCubit>().pauseTimer(),
                       icon: const Icon(Icons.pause),
                       label: const Text('Pause'),
                       style: ElevatedButton.styleFrom(
@@ -295,9 +179,9 @@ class _SessionTimerWidgetState extends State<SessionTimerWidget> {
                         foregroundColor: Colors.white,
                       ),
                     ),
-                  if (_isPaused)
+                  if (state.isPaused)
                     ElevatedButton.icon(
-                      onPressed: _resumeTimer,
+                      onPressed: () => context.read<TimerCubit>().resumeTimer(),
                       icon: const Icon(Icons.play_arrow),
                       label: const Text('Resume'),
                       style: ElevatedButton.styleFrom(
@@ -305,9 +189,9 @@ class _SessionTimerWidgetState extends State<SessionTimerWidget> {
                         foregroundColor: Colors.white,
                       ),
                     ),
-                  if (_isRunning || _isPaused)
+                  if (state.isRunning || state.isPaused)
                     ElevatedButton.icon(
-                      onPressed: _stopTimer,
+                      onPressed: () => context.read<TimerCubit>().stopTimer(),
                       icon: const Icon(Icons.stop),
                       label: const Text('Stop'),
                       style: ElevatedButton.styleFrom(
@@ -316,7 +200,7 @@ class _SessionTimerWidgetState extends State<SessionTimerWidget> {
                       ),
                     ),
                   ElevatedButton.icon(
-                    onPressed: _resetTimer,
+                    onPressed: () => context.read<TimerCubit>().resetTimer(),
                     icon: const Icon(Icons.refresh),
                     label: const Text('Reset'),
                     style: ElevatedButton.styleFrom(
@@ -331,5 +215,38 @@ class _SessionTimerWidgetState extends State<SessionTimerWidget> {
         ),
       ),
     );
+  }
+
+  Color _getSessionColor() {
+    try {
+      String hexColor = widget.session.color;
+      if (hexColor.startsWith('#')) {
+        hexColor = hexColor.substring(1);
+      }
+      return Color(int.parse('FF$hexColor', radix: 16));
+    } catch (e) {
+      return Colors.blue;
+    }
+  }
+
+  IconData _getIconData(String iconName) {
+    switch (iconName.toLowerCase()) {
+      case 'work':
+        return Icons.work;
+      case 'coffee':
+        return Icons.coffee;
+      case 'restaurant':
+        return Icons.restaurant;
+      case 'timer':
+        return Icons.timer;
+      case 'play':
+        return Icons.play_arrow;
+      case 'pause':
+        return Icons.pause;
+      case 'stop':
+        return Icons.stop;
+      default:
+        return Icons.timer;
+    }
   }
 }

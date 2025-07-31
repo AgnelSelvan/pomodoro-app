@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:timer_app/core/di/di.dart';
 import 'package:timer_app/feature/home/domain/entities/session_entity.dart';
 import 'package:timer_app/feature/home/domain/entities/sessions_entity.dart';
 import 'package:timer_app/feature/home/presentation/manager/home_cubit.dart';
+import 'package:timer_app/feature/timer/presentation/manager/timer_cubit.dart';
 import 'package:timer_app/feature/timer/presentation/widgets/session_timer_widget.dart';
 
 class HomePage extends StatefulWidget {
@@ -83,30 +85,35 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    return SessionTimerWidget(
+    return SizedBox(
       key: key,
-      session: currentSession,
-      onTimerComplete: () {
-        final nextIndex =
-            (sessions.sessions.indexOf(currentSession) + 1) %
-            sessions.sessions.length;
-        final nextSession = sessions.sessions[nextIndex];
+      child: BlocProvider(
+        create: (context) => getIt<TimerCubit>(),
+        child: SessionTimerWidget(
+          session: currentSession,
+          onTimerComplete: (ctx) {
+            final nextIndex =
+                (sessions.sessions.indexOf(currentSession) + 1) %
+                sessions.sessions.length;
+            final nextSession = sessions.sessions[nextIndex];
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${currentSession.name} completed! Starting ${nextSession.name}',
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-        key = UniqueKey();
-        setState(() {});
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  '${currentSession.name} completed! Starting ${nextSession.name}',
+                ),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+            key = UniqueKey();
+            setState(() {});
 
-        context.read<HomeCubit>().startSession(nextSession);
-      },
-      isPlay: isPlay,
+            context.read<HomeCubit>().startSession(nextSession);
+          },
+          isPlay: isPlay,
+        ),
+      ),
     );
   }
 }
