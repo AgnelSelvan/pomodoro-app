@@ -8,7 +8,6 @@ class HomeState with _$HomeState {
     SessionsEntity sessions,
     SessionEntity currentSession, {
     @Default(false) bool isPlay,
-    @Default(false) bool isCurrentSessionCompleted,
   }) = _Success;
   const factory HomeState.failure(String message) = _Failure;
 }

@@ -1,7 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:timer_app/core/di/di.dart';
 import 'package:timer_app/feature/home/domain/entities/session_entity.dart';
+import 'package:timer_app/feature/timer/domain/use_cases/clear_time_state_use_case.dart';
+import 'package:timer_app/feature/timer/domain/use_cases/load_timer_state_use_case.dart';
+import 'package:timer_app/feature/timer/domain/use_cases/save_timer_state_use_case.dart';
 
 class SessionTimerWidget extends StatefulWidget {
   final SessionEntity session;
@@ -28,15 +32,63 @@ class _SessionTimerWidgetState extends State<SessionTimerWidget> {
   @override
   void initState() {
     super.initState();
-    _remainingSeconds = widget.session.duration * 60;
-
-    if (widget.isPlay) _startTimer();
+    _loadTimerState();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadTimerState() async {
+    final savedState = await getIt<LoadTimerStateUseCase>().call().then(
+      (value) => value.fold((l) => null, (r) => r),
+    );
+
+    if (savedState != null && savedState.sessionId == widget.session.id) {
+      if (savedState.isExpired) {
+        await getIt<ClearTimeStateUseCase>().call().then(
+          (value) => value.fold((l) => null, (r) => r),
+        );
+        setState(() {
+          _remainingSeconds = widget.session.duration * 60;
+          _isRunning = false;
+          _isPaused = false;
+        });
+        widget.onTimerComplete?.call();
+      } else {
+        setState(() {
+          _remainingSeconds = savedState.remainingSeconds;
+          _isRunning = savedState.isRunning;
+          _isPaused = savedState.isPaused;
+        });
+
+        if (_isRunning && !_isPaused) {
+          _isRunning = false;
+          setState(() {});
+          _startTimer();
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Timer restored: ${_formatTime(_remainingSeconds)} remaining',
+            ),
+            backgroundColor: Colors.blue,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } else {
+      setState(() {
+        _remainingSeconds = widget.session.duration * 60;
+      });
+
+      if (widget.isPlay) {
+        _startTimer();
+      }
+    }
   }
 
   void _startTimer() {
@@ -47,16 +99,34 @@ class _SessionTimerWidgetState extends State<SessionTimerWidget> {
       _isPaused = false;
     });
 
+    _saveTimerState();
+
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         if (_remainingSeconds > 0) {
           _remainingSeconds--;
+          _saveTimerState();
         } else {
           _stopTimer();
           widget.onTimerComplete?.call();
         }
       });
+
+      if (_remainingSeconds <= 0) {
+        getIt<ClearTimeStateUseCase>().call().then(
+          (value) => value.fold((l) => null, (r) => r),
+        );
+      }
     });
+  }
+
+  Future<void> _saveTimerState() async {
+    await getIt<SaveTimerStateUseCase>().call(
+      session: widget.session,
+      remainingSeconds: _remainingSeconds,
+      isRunning: _isRunning,
+      isPaused: _isPaused,
+    );
   }
 
   void _pauseTimer() {
@@ -64,8 +134,10 @@ class _SessionTimerWidgetState extends State<SessionTimerWidget> {
 
     setState(() {
       _isPaused = true;
+      _isRunning = false;
     });
     _timer?.cancel();
+    _saveTimerState();
   }
 
   void _resumeTimer() {
@@ -75,6 +147,7 @@ class _SessionTimerWidgetState extends State<SessionTimerWidget> {
       _isPaused = false;
     });
     _startTimer();
+    _saveTimerState();
   }
 
   void _stopTimer() {
@@ -84,6 +157,7 @@ class _SessionTimerWidgetState extends State<SessionTimerWidget> {
       _isPaused = false;
       _remainingSeconds = widget.session.duration * 60;
     });
+    _saveTimerState();
   }
 
   void _resetTimer() {
@@ -91,6 +165,7 @@ class _SessionTimerWidgetState extends State<SessionTimerWidget> {
     setState(() {
       _remainingSeconds = widget.session.duration * 60;
     });
+    _saveTimerState();
   }
 
   String _formatTime(int seconds) {

@@ -9,9 +9,9 @@ GetIt getIt = GetIt.instance;
   asExtension: false,
   throwOnMissingDependencies: true,
 )
-void configureDependencies({
+Future<void> configureDependencies({
   String? env,
   EnvironmentFilter? environmentFilter,
 }) async {
-  init(getIt, environmentFilter: environmentFilter, environment: env);
+  await init(getIt, environmentFilter: environmentFilter, environment: env);
 }

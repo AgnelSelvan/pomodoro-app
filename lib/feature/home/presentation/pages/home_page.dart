@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:timer_app/feature/home/domain/entities/session_entity.dart';
 import 'package:timer_app/feature/home/domain/entities/sessions_entity.dart';
 import 'package:timer_app/feature/home/presentation/manager/home_cubit.dart';
-import 'package:timer_app/feature/home/presentation/widgets/session_timer_widget.dart';
+import 'package:timer_app/feature/timer/presentation/widgets/session_timer_widget.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,6 +13,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  UniqueKey key = UniqueKey();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -27,14 +28,8 @@ class _HomePageState extends State<HomePage> {
           return state.when(
             initial: () => const Center(child: CircularProgressIndicator()),
             loading: () => const Center(child: CircularProgressIndicator()),
-            success:
-                (sessions, currentSession, isPlay, isCurrentSessionCompleted) =>
-                    _buildSessionsTimer(
-                      sessions,
-                      currentSession,
-                      isPlay,
-                      isCurrentSessionCompleted,
-                    ),
+            success: (sessions, currentSession, isPlay) =>
+                _buildSessionsTimer(sessions, currentSession, isPlay),
             failure: (message) => Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -71,7 +66,6 @@ class _HomePageState extends State<HomePage> {
     SessionsEntity sessions,
     SessionEntity currentSession,
     bool isPlay,
-    bool isCurrentSessionCompleted,
   ) {
     if (sessions.sessions.isEmpty) {
       return const Center(
@@ -89,11 +83,8 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    if (isCurrentSessionCompleted) {
-      return SizedBox();
-    }
-
     return SessionTimerWidget(
+      key: key,
       session: currentSession,
       onTimerComplete: () {
         final nextIndex =
@@ -110,6 +101,8 @@ class _HomePageState extends State<HomePage> {
             duration: const Duration(seconds: 3),
           ),
         );
+        key = UniqueKey();
+        setState(() {});
 
         context.read<HomeCubit>().startSession(nextSession);
       },
